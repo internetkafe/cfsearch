@@ -16,14 +16,14 @@ import (
 )
 
 var (
-	targetHost  string
-	scheme      string
-	workers     int
-	reqTimeout  time.Duration
-	cidrs       arrayFlags
-	filePath    string
-	dedup       bool
-	outputFile  string
+	targetHost   string
+	scheme       string
+	workers      int
+	reqTimeout   time.Duration
+	cidrs        arrayFlags
+	filePath     string
+	dedup        bool
+	outputFile   string
 	showProgress bool
 )
 
@@ -44,7 +44,7 @@ func init() {
 	flag.StringVar(&filePath, "file", "", "")
 	flag.BoolVar(&dedup, "dedup", false, "")
 	flag.StringVar(&outputFile, "output", "cfsearch.txt", "")
-	flag.BoolVar(&showProgress, "progress", false, "показывать прогресс проверки")
+	flag.BoolVar(&showProgress, "progress", false, "")
 }
 
 func main() {
@@ -211,6 +211,11 @@ func checkHTTP(ip net.IP, client *http.Client) bool {
 	}
 	req.Host = targetHost
 
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	req.Header.Set("Connection", "keep-alive")
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return false
@@ -221,6 +226,12 @@ func checkHTTP(ip net.IP, client *http.Client) bool {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 256))
 		return strings.Contains(string(body), targetHost)
 	}
+
+	if resp.StatusCode >= 301 && resp.StatusCode <= 308 {
+		location := resp.Header.Get("Location")
+		return strings.Contains(location, targetHost)
+	}
+
 	return false
 }
 
